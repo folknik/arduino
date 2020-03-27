@@ -1,5 +1,3 @@
-// Автор – Джон Боксэлл (John Boxall), from http://tronixstuff.com
-
 #include "Wire.h"
 #define DS3231_I2C_ADDRESS 0x68
 
@@ -16,35 +14,27 @@ byte bcdToDec(byte val){
 void setup(){
   Wire.begin();
   Serial.begin(9600);
-  // задаем текущее время;
-  // секунды, минуты, часы, день недели, дата, месяц, год:
-  setDS3231time(0, 30, 23, 6, 27, 3, 20);
+  // задаем текущее время - секунды, минуты, часы, день недели, дата, месяц, год:
+  //setDS3231time(0, 35, 23, 6, 27, 3, 20);
 }
 
 void setDS3231time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year){
   // передаем данные о времени и дате на DS3231:
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
-  // выставляем регистр указателей DS3231 на регистр «00h»,
-  // т.е. на регистр, в котором хранятся данные о секундах:
+  // выставляем регистр указателей DS3231 на регистр «00h», т.е. на регистр, в котором хранятся данные о секундах:
   Wire.write(0);
   Wire.write(decToBcd(second)); // задаем секунды
   Wire.write(decToBcd(minute)); // задаем минуты
   Wire.write(decToBcd(hour)); // задаем часы
-  Wire.write(decToBcd(dayOfWeek));
-  // задаем день недели (1 – это воскресенье, 7 – это суббота)
+  Wire.write(decToBcd(dayOfWeek)); // задаем день недели (1 – это воскресенье, 7 – это суббота)
   Wire.write(decToBcd(dayOfMonth)); // задаем дату (от 1 до 31)
   Wire.write(decToBcd(month)); // задаем месяц
   Wire.write(decToBcd(year)); // задаем год (от 0 до 99)
   Wire.endTransmission();
 }
 
-void readDS3231time(byte *second,
-byte *minute,
-byte *hour,
-byte *dayOfWeek,
-byte *dayOfMonth,
-byte *month,
-byte *year){
+void readDS3231time(byte *second, byte *minute, byte *hour, byte *dayOfWeek, byte *dayOfMonth, byte *month, byte *year){
+  // передаем данные о времени и дате на DS3231:
   Wire.beginTransmission(DS3231_I2C_ADDRESS);
   // выставляем регистр указателей DS3231 на регистр «00h»:
   Wire.write(0);
@@ -59,21 +49,21 @@ byte *year){
   *month = bcdToDec(Wire.read());
   *year = bcdToDec(Wire.read());
 }
+
 void displayTime(){
   byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
   // извлекаем данные из DS3231:
-  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month,
-  &year);
+  readDS3231time(&second, &minute, &hour, &dayOfWeek, &dayOfMonth, &month, &year);
   // отправляем их на монитор порта:
   Serial.print(hour, DEC);
   // при показе конвертируем байтовую переменную в десятичное число:
   Serial.print(":");
-  if (minute<10){
+  if (minute < 10){
     Serial.print("0");
   }
   Serial.print(minute, DEC);
   Serial.print(":");
-  if (second<10){
+  if (second < 10){
     Serial.print("0");
   }
   Serial.print(second, DEC);
@@ -108,8 +98,9 @@ void displayTime(){
     break;
   }
 }
+
 void loop(){
   displayTime();
- // показываем на мониторе порта текущие данные RTC-модуля  
+  // показываем на мониторе порта текущие данные RTC-модуля  
   delay(1000); // секундная задержка
 }
