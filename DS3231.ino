@@ -1,5 +1,5 @@
 // Микросхема DS3231 является часами реального времени с температурной компенсацией
-//
+
 #include "Wire.h"
 #define DS3231_I2C_ADDRESS 0x68
 
@@ -90,26 +90,26 @@ void displayTime()
     switch(dayOfWeek)
     {
         case 1:
-          Serial.println("Sunday");  //  "Воскресенье"
-          break;
+            Serial.println("Sunday");  //  "Воскресенье"
+            break;
         case 2:
-          Serial.println("Monday");  //  "Понедельник"
-          break;
+            Serial.println("Monday");  //  "Понедельник"
+            break;
         case 3:
-          Serial.println("Tuesday");  //  "Вторник"
-          break;
+            Serial.println("Tuesday");  //  "Вторник"
+            break;
         case 4:
-          Serial.println("Wednesday");  //  "Среда"
-          break;
+            Serial.println("Wednesday");  //  "Среда"
+            break;
         case 5:
-          Serial.println("Thursday");  //  "Четверг"
-          break;
+            Serial.println("Thursday");  //  "Четверг"
+            break;
         case 6:
-          Serial.println("Friday");  //  "Пятница"
-          break;
+            Serial.println("Friday");  //  "Пятница"
+            break;
         case 7:
-          Serial.println("Saturday");  //  "Суббота"
-          break;
+            Serial.println("Saturday");  //  "Суббота"
+            break;
     }
 }
 
