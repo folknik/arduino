@@ -33,7 +33,7 @@ void loop()
     // проверяем будильник, время срабатывания - 8:00:00
     if (hours == alarmHour && minutes == alarmMinute && seconds == alarmSecond)
     {
-        // TO DO
+        // YOUR CODE
     }
     delay(1000);
 }
