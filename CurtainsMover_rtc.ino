@@ -57,24 +57,24 @@ bool CheckMorningTime(int h_, int m_, int s_)
 {
     if (h_ == 7 and m_ == 0 and s_ <= timeGap)
     {
-        return true
+        return true;
     }
     else
     {
-        return false
+        return false;
     }
 }
 
 // функция для проверки, попадает ли время в вечерний интервал
 bool CheckEveningTime(int h_, int m_, int s_)
 {
-    if (h_ == 18 and m_ == 0 and s_ <= timeGap)
+    if (h_ == 12 and m_ == 10 and s_ <= timeGap)
     {
-        return true
+        return true;
     }
     else
     {
-        return false
+        return false;
     }
 }
 
@@ -82,8 +82,10 @@ bool CheckEveningTime(int h_, int m_, int s_)
 int MotorMover(int h, int m, int s)
 {
     // проверяем утренний и вечерний промежутки времени
-    resMorning = CheckMorningTime(h, m, s)
-    resEvening = CheckEveningTime(h, m, s)
+    bool resMorning = false;
+    bool resEvening = false;
+    resMorning = CheckMorningTime(h, m, s);
+    resEvening = CheckEveningTime(h, m, s);
 
     // режим размотки шторы при наступлении рассвета
     if (resMorning and type == 0 and flagEnd == 0)
