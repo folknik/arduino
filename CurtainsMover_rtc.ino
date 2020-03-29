@@ -1,10 +1,3 @@
-/*
-Стекч для автоматизации работы домашних рулонных штор
-Использован шаговый двигатель 28BYJ-48 и платы контроля ULN2003
-В качестве платы контроллера используется Arduino Nano
-Для сворачивания штор по времени используются часы реального времени DS3231
-*/
-
 #include <Wire.h>
 #include <DS3231.h>
 #include <AccelStepper.h>
@@ -28,10 +21,11 @@ AccelStepper motor(4, Pin1, Pin3, Pin2, Pin4);
 
 int type = 1; // опускаем или поднимаем шторы, если заливаем скетч днем, то ставим 1
 int flagEnd = 0; // флаг показывающий подняты или опущены до конца шторы
-int distance = 15000; // на сколько закручиваем шторы
+int distance = 30000; // на сколько закручиваем шторы
 int balance; // остаток непройденного расстояния
 int startFlag = 1;
-int timeGap = 30;
+int delaySec = 20;
+int timeGap = delaySec + 10;
 
 // инициализация всего оборудования
 void setup()
@@ -68,7 +62,7 @@ bool CheckMorningTime(int h_, int m_, int s_)
 // функция для проверки, попадает ли время в вечерний интервал
 bool CheckEveningTime(int h_, int m_, int s_)
 {
-    if (h_ == 12 and m_ == 10 and s_ <= timeGap)
+    if (h_ == 18 and m_ == 20 and s_ <= timeGap)
     {
         return true;
     }
@@ -136,6 +130,6 @@ void loop()
     balance = MotorMover(hours, minutes, seconds);
     if (balance == 0 and startFlag == 0)
     {
-        delay(30 * 1000); // ждем 30 сек
+        delay(delaySec * 1000); // ждем delaySec секунд
     }
 }
