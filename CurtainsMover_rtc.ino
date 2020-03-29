@@ -5,9 +5,10 @@
 Для сворачивания штор по времени используются часы реального времени DS3231
 */
 
-#include <AccelStepper.h>
 #include <Wire.h>
 #include <DS3231.h>
+#include <AccelStepper.h>
+
 
 DS3231 clock;
 RTCDateTime dt;
@@ -15,11 +16,6 @@ RTCDateTime dt;
 int seconds;
 int minutes;
 int hours;
-
-// определяем время срабатывания будильника
-int alarmSecond = 0;
-int alarmMinute = 0;
-int alarmHour = 8;
 
 // Определение пинов для управления двигателем
 #define Pin1  12 // IN1
@@ -30,19 +26,17 @@ int alarmHour = 8;
 // Инициализируемся с последовательностью выводов IN1-IN3-IN2-IN4 для использования AccelStepper с 28BYJ-48
 AccelStepper motor(4, Pin1, Pin3, Pin2, Pin4);
 
-int xA0 = 0;
 int type = 0; // тип операции - опускаем или поднимаем шторы
 int flagEnd = 0; // флаг показывающий подняты или опущены до конца шторы
 int distance = 15000; // на сколько закручиваем шторы
-int morningLevel = 300;
-int nightLevel = 600;
 int balance; // остаток непройденного расстояния
 int waitingTime = 60000; // время ожидания до следующего измерения фотодетектора
 int startFlag = 1;
+int timeGap = 30;
+
 
 void setup()
 {
-
     // Инициализация DS3231
     clock.begin();
 
@@ -60,44 +54,72 @@ void setup()
     balance = distance;
 }
 
-int MotorMover(int val)
+// функция для проверки, попадает ли время в утренний интервал
+bool CheckMorningTime(int h_, int m_, int s_)
 {
-      // режим размотки шторы при наступлении рассвета
-      if (val < morningLevel and type == 0 and flagEnd == 0)
-      {
-          motor.moveTo(distance);
-          type = 1;
-          startFlag = 0;
-      }
+    if (h_ == 7 and m_ == 0 and s_ <= timeGap)
+    {
+        return true
+    }
+    else
+    {
+        return false
+    }
+}
 
-      // режим смотки шторы при наступлении заката
-      if (val > nightLevel and type == 1 and flagEnd == 0)
-      {
-          motor.moveTo(-distance);
-          type = 0;
-          startFlag = 0;
-      }
+// функция для проверки, попадает ли время в вечерний интервал
+bool CheckEveningTime(int h_, int m_, int s_)
+{
+    if (h_ == 18 and m_ == 0 and s_ <= timeGap)
+    {
+        return true
+    }
+    else
+    {
+        return false
+    }
+}
 
-      // если движение началось, но еще не закончилось, то меняем значение флага, чтобы режимы не повторялись
-      if (motor.distanceToGo() != 0)
-      {
-          flagEnd = 1;
-      }
-      else
-      {
-          // согнализируем о том, что мотор докрутил шторы
-          flagEnd = 0;
+// функция, которая вращает мотор
+int MotorMover(int h, int m, int s)
+{
+    resMorning = CheckMorningTime(h, m, s)
+    resEvening = CheckEveningTime(h, m, s)
+    // режим размотки шторы при наступлении рассвета
+    if (resMorning and type == 0 and flagEnd == 0)
+    {
+        motor.moveTo(distance);
+        type = 1;
+        startFlag = 0;
+    }
 
-          // чтобы мотор не грелся в режиме ожидания, подаем на все обмотки нулевой сигнал
-          digitalWrite (12, LOW);
-          digitalWrite (11, LOW);
-          digitalWrite (10, LOW);
-          digitalWrite (9, LOW);
-      }
+    // режим смотки шторы при наступлении заката
+    if (resEvening and type == 1 and flagEnd == 0)
+    {
+        motor.moveTo(-distance);
+        type = 0;
+        startFlag = 0;
+    }
 
-      // запускаем очередной шаг мотора
-      motor.run();
-      return motor.distanceToGo();
+    // если движение началось, но еще не закончилось, то меняем значение флага, чтобы режимы не повторялись
+    if (motor.distanceToGo() != 0)
+    {
+        flagEnd = 1;
+    }
+    else
+    {
+        // согнализируем о том, что мотор докрутил шторы
+        flagEnd = 0;
+        // чтобы мотор не грелся в режиме ожидания, подаем на все обмотки нулевой сигнал
+        digitalWrite (12, LOW);
+        digitalWrite (11, LOW);
+        digitalWrite (10, LOW);
+        digitalWrite (9, LOW);
+    }
+
+    // запускаем очередной шаг мотора
+    motor.run();
+    return motor.distanceToGo();
 }
 
 void loop()
@@ -109,15 +131,8 @@ void loop()
     minutes = dt.minute;
     hours = dt.hour;
 
-    // проверяем будильник, время срабатывания - 8:00:00
-    if (hours == alarmHour && minutes == alarmMinute && seconds == alarmSecond)
-    {
-        // TO DO
-    }
-
     // считываем показания модуля фотодетектора и передаем их в функция, отвечающую за движение штор
-    xA0 = 290;
-    balance = MotorMover(xA0);
+    balance = MotorMover(hours, minutes, seconds);
     if (balance == 0 and startFlag == 0)
     {
         delay(waitingTime);
