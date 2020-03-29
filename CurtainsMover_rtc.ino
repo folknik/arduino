@@ -26,7 +26,7 @@ int hours;
 // Инициализируемся с последовательностью выводов IN1-IN3-IN2-IN4 для использования AccelStepper с 28BYJ-48
 AccelStepper motor(4, Pin1, Pin3, Pin2, Pin4);
 
-int type = 0; // тип операции - опускаем или поднимаем шторы
+int type = 1; // опускаем или поднимаем шторы, если заливаем скетч днем, то ставим 1
 int flagEnd = 0; // флаг показывающий подняты или опущены до конца шторы
 int distance = 15000; // на сколько закручиваем шторы
 int balance; // остаток непройденного расстояния
@@ -49,7 +49,7 @@ void setup()
     pinMode (11, OUTPUT);
     pinMode (10, OUTPUT);
     pinMode (9, OUTPUT);
-    balance = distance;
+    // balance = distance;
 }
 
 // функция для проверки, попадает ли время в утренний интервал
