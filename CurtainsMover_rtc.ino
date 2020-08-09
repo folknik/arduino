@@ -21,7 +21,7 @@ int hours;
 // Инициализируемся с последовательностью выводов IN1-IN3-IN2-IN4 для использования AccelStepper с 28BYJ-48
 AccelStepper motor(4, Pin1, Pin3, Pin2, Pin4);
 
-int type = 0; // опускаем или поднимаем шторы, если заливаем скетч днем, то ставим 1
+int type = 0; // опускаем или поднимаем шторы
 int flagEnd = 0; // флаг показывающий подняты или опущены до конца шторы
 int distance = 30000; // на сколько закручиваем шторы
 int balance; // остаток непройденного расстояния
@@ -46,7 +46,25 @@ void setup()
 
     // время компиляции скетча как время отсчета
     clock.setDateTime(__DATE__, __TIME__);
-    
+
+    // получаем текущее время
+    dt = clock.getDateTime();
+    seconds = dt.second;
+    minutes = dt.minute;
+    hours = dt.hour;
+
+    // в зависимости от времени инициализации оборудования устанавливаем направление движения шторы
+    bool statusStart = false;
+    statusStart = isMorningTime(hours, minutes, seconds);
+    if (statusStart)
+    {
+        type = 0;
+    }
+    else
+    {
+        type = 1;
+    }
+
     // инициализация шагового мотора
     motor.setMaxSpeed(500.0); // устанавливаем максимальную скорость вращения ротора двигателя (шагов/секунду)
     motor.setAcceleration(100.0); // устанавливаем ускорение (шагов/секунду^2)
