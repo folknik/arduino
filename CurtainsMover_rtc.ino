@@ -1,6 +1,8 @@
 #include <Wire.h>
 #include <DS3231.h>
 #include <AccelStepper.h>
+#include "GyverWDT.h"
+#include <avr/sleep.h>
 
 
 // инициализация переменных для RTC clock
@@ -19,13 +21,22 @@ int hours;
 // Инициализируемся с последовательностью выводов IN1-IN3-IN2-IN4 для использования AccelStepper с 28BYJ-48
 AccelStepper motor(4, Pin1, Pin3, Pin2, Pin4);
 
-int type = 1; // опускаем или поднимаем шторы, если заливаем скетч днем, то ставим 1
+int type = 0; // опускаем или поднимаем шторы, если заливаем скетч днем, то ставим 1
 int flagEnd = 0; // флаг показывающий подняты или опущены до конца шторы
 int distance = 30000; // на сколько закручиваем шторы
 int balance; // остаток непройденного расстояния
-int startFlag = 1;
-int delaySec = 20;
-int timeGap = delaySec + 10;
+
+/* интервал минут и секунд ~5мин*/
+int minGap = 4;
+int secGap = 59;
+
+/* время утренней размотки штор */
+int morning_hour = 11;
+int morning_minute = 50;
+
+/* время вечерней смотки штор */
+int evening_hour = 12;
+int evening_minute = 05;
 
 // инициализация всего оборудования
 void setup()
@@ -34,7 +45,7 @@ void setup()
     clock.begin();
     // время компиляции скетча как время отсчета
     clock.setDateTime(__DATE__, __TIME__);
-
+    
     // инициализация шагового мотора
     motor.setMaxSpeed(500.0);
     motor.setAcceleration(100.0);
@@ -44,12 +55,13 @@ void setup()
     pinMode (10, OUTPUT);
     pinMode (9, OUTPUT);
     // balance = distance;
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN); // Выбираем нужный режим сна
 }
 
 // функция для проверки, попадает ли время в утренний интервал
 bool CheckMorningTime(int h_, int m_, int s_)
 {
-    if (h_ == 7 and m_ == 0 and s_ <= timeGap)
+    if (h_ == morning_hour and m_ - morning_minute >= 0 and m_ - morning_minute <= minGap  and s_ <= secGap)
     {
         return true;
     }
@@ -62,7 +74,7 @@ bool CheckMorningTime(int h_, int m_, int s_)
 // функция для проверки, попадает ли время в вечерний интервал
 bool CheckEveningTime(int h_, int m_, int s_)
 {
-    if (h_ == 18 and m_ == 20 and s_ <= timeGap)
+    if (h_ == evening_hour and m_ - evening_minute >= 0 and m_ - evening_minute <= minGap  and s_ <= secGap)
     {
         return true;
     }
@@ -80,13 +92,13 @@ int MotorMover(int h, int m, int s)
     bool resEvening = false;
     resMorning = CheckMorningTime(h, m, s);
     resEvening = CheckEveningTime(h, m, s);
-
+    
     // режим размотки шторы при наступлении рассвета
     if (resMorning and type == 0 and flagEnd == 0)
     {
         motor.moveTo(distance);
         type = 1;
-        startFlag = 0;
+        // startFlag = 0;
     }
 
     // режим смотки шторы при наступлении заката
@@ -94,7 +106,7 @@ int MotorMover(int h, int m, int s)
     {
         motor.moveTo(-distance);
         type = 0;
-        startFlag = 0;
+        // startFlag = 0;
     }
 
     // если движение началось, но еще не закончилось, то меняем значение флага, чтобы режимы не повторялись
@@ -128,8 +140,41 @@ void loop()
 
     // передаем время в MotorMover
     balance = MotorMover(hours, minutes, seconds);
-    if (balance == 0 and startFlag == 0)
+
+    /* если distanceToGо = 0, то можем поспать */
+    if (balance == 0)
     {
-        delay(delaySec * 1000); // ждем delaySec секунд
+        Watchdog.enable(INTERRUPT_MODE, WDT_PRESCALER_1024); // Режим прерываний, +8с, таймаут ~8c
+        sleep_enable();                                      // Разрешаем сон
+        sleep_cpu();                                         // Уходим в сон
+        Watchdog.enable(INTERRUPT_MODE, WDT_PRESCALER_1024); // Режим прерываний, +8с, таймаут ~16c
+        sleep_enable();                                      // Разрешаем сон
+        sleep_cpu();                                         // Уходим в сон
+        Watchdog.enable(INTERRUPT_MODE, WDT_PRESCALER_1024); // Режим прерываний, +8с, таймаут ~24c
+        sleep_enable();                                      // Разрешаем сон
+        sleep_cpu();                                         // Уходим в сон
+        Watchdog.enable(INTERRUPT_MODE, WDT_PRESCALER_1024); // Режим прерываний, +8с, таймаут ~32c
+        sleep_enable();                                      // Разрешаем сон
+        sleep_cpu();                                         // Уходим в сон
+        Watchdog.enable(INTERRUPT_MODE, WDT_PRESCALER_1024); // Режим прерываний, +8с, таймаут ~40c
+        sleep_enable();                                      // Разрешаем сон
+        sleep_cpu();                                         // Уходим в сон
+        Watchdog.enable(INTERRUPT_MODE, WDT_PRESCALER_1024); // Режим прерываний, +8с, таймаут ~48c
+        sleep_enable();                                      // Разрешаем сон
+        sleep_cpu();                                         // Уходим в сон
+        Watchdog.enable(INTERRUPT_MODE, WDT_PRESCALER_1024); // Режим прерываний, +8с, таймаут ~56c
+        sleep_enable();                                      // Разрешаем сон
+        sleep_cpu();                                         // Уходим в сон
+        Watchdog.enable(INTERRUPT_MODE, WDT_PRESCALER_512);  // Режим прерываний, +4с, таймаут ~60c
+        sleep_enable();                                      // Разрешаем сон
+        sleep_cpu();                                         // Уходим в сон
     }
+}
+
+
+/* Прерывание watchdog , в нем мы просыпаемся */
+ISR(WATCHDOG)
+{
+    sleep_disable();     // Запрещаем сон
+    Watchdog.disable();  // Выключаем watchdog
 }
