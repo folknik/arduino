@@ -16,7 +16,7 @@ int hours;
 #define Pin1  12 // IN1
 #define Pin2  11 // IN2
 #define Pin3  10 // IN3
-#define Pin4  9 // IN4
+#define Pin4  9  // IN4
 
 // Инициализируемся с последовательностью выводов IN1-IN3-IN2-IN4 для использования AccelStepper с 28BYJ-48
 AccelStepper motor(4, Pin1, Pin3, Pin2, Pin4);
@@ -26,42 +26,53 @@ int flagEnd = 0; // флаг показывающий подняты или оп
 int distance = 30000; // на сколько закручиваем шторы
 int balance; // остаток непройденного расстояния
 
-/* интервал минут и секунд ~5мин*/
-int minGap = 4;
-int secGap = 59;
-
 /* время утренней размотки штор */
-int morning_hour = 11;
-int morning_minute = 50;
+int morning_hour = 6;
+int morning_minute = 0;
 
 /* время вечерней смотки штор */
-int evening_hour = 12;
-int evening_minute = 05;
+int evening_hour = 11;
+int evening_minute = 0;
+
+int morningSeconds = morning_minute * 60 + morning_hour * 3600;
+int eveningSeconds = evening_minute * 60 + evening_hour * 3600;
+int currentSeconds = 0;
 
 // инициализация всего оборудования
 void setup()
 {
     // Инициализация DS3231
     clock.begin();
+
     // время компиляции скетча как время отсчета
     clock.setDateTime(__DATE__, __TIME__);
     
     // инициализация шагового мотора
-    motor.setMaxSpeed(500.0);
-    motor.setAcceleration(100.0);
+    motor.setMaxSpeed(500.0); // устанавливаем максимальную скорость вращения ротора двигателя (шагов/секунду)
+    motor.setAcceleration(100.0); // устанавливаем ускорение (шагов/секунду^2)
     motor.setSpeed(100);
     pinMode (12, OUTPUT);
     pinMode (11, OUTPUT);
     pinMode (10, OUTPUT);
     pinMode (9, OUTPUT);
-    // balance = distance;
-    set_sleep_mode(SLEEP_MODE_PWR_DOWN); // Выбираем нужный режим сна
+
+    motor.setCurrentPosition(0); // устанавливаем мотор шагового двигателя в нулевое положение
+
+    // Выбираем нужный режим сна
+    set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+}
+
+// количество секунды с полуночи
+int getSeconds(int new_h, int new_m, int new_s)
+{
+    return new_s + new_m * 60 + new_h * 3600;
 }
 
 // функция для проверки, попадает ли время в утренний интервал
-bool CheckMorningTime(int h_, int m_, int s_)
+bool isMorningTime(int h_, int m_, int s_)
 {
-    if (h_ == morning_hour and m_ - morning_minute >= 0 and m_ - morning_minute <= minGap  and s_ <= secGap)
+    currentSeconds = getSeconds(h_, m_, s_);
+    if (currentSeconds >= morningSeconds and currentSeconds <= eveningSeconds)
     {
         return true;
     }
@@ -71,63 +82,54 @@ bool CheckMorningTime(int h_, int m_, int s_)
     }
 }
 
-// функция для проверки, попадает ли время в вечерний интервал
-bool CheckEveningTime(int h_, int m_, int s_)
-{
-    if (h_ == evening_hour and m_ - evening_minute >= 0 and m_ - evening_minute <= minGap  and s_ <= secGap)
-    {
-        return true;
-    }
-    else
-    {
-        return false;
-    }
-}
-
-// функция, которая вращает мотор
+// функция, которая отвечает за движение мотора
 int MotorMover(int h, int m, int s)
 {
+    /*
+        Если текущая время (количество секунд с полуночи) попадает в промежуток между утренним и
+        вечерним промежутками, то происходит опускание шторы. Если наступил вечер, то  происходит смотка шторы
+        00:00 ---------- morning_time ------------- evening_time ---------- 23:59
+    */
+
     // проверяем утренний и вечерний промежутки времени
-    bool resMorning = false;
-    bool resEvening = false;
-    resMorning = CheckMorningTime(h, m, s);
-    resEvening = CheckEveningTime(h, m, s);
+    bool status = false;
+    status = isMorningTime(h, m, s);
     
     // режим размотки шторы при наступлении рассвета
-    if (resMorning and type == 0 and flagEnd == 0)
+    if (status == true and type == 0 and flagEnd == 0)
     {
         motor.moveTo(distance);
         type = 1;
-        // startFlag = 0;
     }
 
     // режим смотки шторы при наступлении заката
-    if (resEvening and type == 1 and flagEnd == 0)
+    if (status == false and type == 1 and flagEnd == 0)
     {
         motor.moveTo(-distance);
         type = 0;
-        // startFlag = 0;
     }
 
-    // если движение началось, но еще не закончилось, то меняем значение флага, чтобы режимы не повторялись
+    // Как только движение началось, меняем значение флага. Если движение закончилось, то меняем значение флага на ноль
     if (motor.distanceToGo() != 0)
     {
         flagEnd = 1;
     }
     else
     {
-        // согнализируем о том, что мотор докрутил шторы
-        flagEnd = 0;
-        // чтобы мотор не грелся в режиме ожидания, подаем на все обмотки нулевой сигнал
+        flagEnd = 0; // мотор докрутил штору
+
+        motor.setCurrentPosition(0); // устанавливаем мотор шагового двигателя в нулевое положение
+
+        // чтобы мотор не грелся в режиме ожидания снимаем напряжение с обмоток шагового двигателя
         digitalWrite (12, LOW);
         digitalWrite (11, LOW);
         digitalWrite (10, LOW);
         digitalWrite (9, LOW);
     }
 
-    // запускаем очередной шаг мотора
+    // запускаем очередной шаг мотора, ускорение определено выше
     motor.run();
-    return motor.distanceToGo();
+    return motor.distanceToGo(); // возвращаем количество оставшихся шагов шагового двигателя
 }
 
 void loop()
@@ -170,7 +172,6 @@ void loop()
         sleep_cpu();                                         // Уходим в сон
     }
 }
-
 
 /* Прерывание watchdog , в нем мы просыпаемся */
 ISR(WATCHDOG)
