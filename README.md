@@ -20,6 +20,7 @@
 
 ![motor](pictures/motor.jpg)
 
+
 В схеме также использованы часы реального времени DS3231.
 
 ![rtc](pictures/rtc.jpg)
