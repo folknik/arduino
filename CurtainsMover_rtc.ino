@@ -56,7 +56,7 @@ void setup()
     // инициализация шагового мотора
     motor.setMaxSpeed(500.0); // устанавливаем максимальную скорость вращения ротора двигателя (шагов/секунду)
     motor.setAcceleration(100.0); // устанавливаем ускорение (шагов/секунду^2)
-    motor.setSpeed(100);
+    motor.setSpeed(100); // motor speed in rotations per minute (RPMs)
     pinMode (12, OUTPUT);
     pinMode (11, OUTPUT);
     pinMode (10, OUTPUT);
